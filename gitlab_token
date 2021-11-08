@@ -1,0 +1,35 @@
+GITLAB
+
+GitLab read_registry token - ZCe4SQZ_F5XD2tsrW86K
+? kubectl create secret docker-registry regcred --docker-server=registry.gitlab.com --docker-username=k8s --docker-password=ZCe4SQZ_F5XD2tsrW86K
+
+export REGISTRY_USERNAME=AKS_testTenant_PoC
+export REGISTRY_PASSWORD=ZCe4SQZ_F5XD2tsrW86K
+export BASE_64_BASIC_AUTH_CREDENTIALS=$(echo -n "$REGISTRY_USERNAME:$REGISTRY_PASSWORD" | base64)
+
+cat << EOF > .dockerconfigjson
+ {
+     "auths": {
+         "https://registry.gitlab.com": {
+             "username":"$REGISTRY_USERNAME",
+             "password":"$REGISTRY_PASSWORD",
+             "email":"$REGISTRY_EMAIL",
+             "auth":"$BASE_64_BASIC_AUTH_CREDENTIALS"
+         }
+     }
+ }
+EOF
+
+export BASE_64_ENCODED_DOCKER_FILE=$(cat .dockerconfigjson | base64)
+echo $BASE_64_ENCODED_DOCKER_FILE 
+
+cat <<EOF | kubectl apply -f -
+ apiVersion: v1
+ kind: Secret
+ metadata:
+   name: registry-credentials
+   namespace: default
+ type: kubernetes.io/dockerconfigjson
+ data:
+   .dockerconfigjson: $BASE_64_ENCODED_DOCKER_FILE
+EOF
